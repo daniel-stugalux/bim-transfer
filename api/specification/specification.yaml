@@ -1,0 +1,49 @@
+swagger: '2.0'
+info:
+  description: This is an API to transfer / publish models in Autodesk's BIM360 Docs.
+  version: 1.0.0
+  title: Stugalux API
+  termsOfService: 'http://bim.stugalux.lu:580/'
+  contact:
+    email: it@stugalux.lu
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+schemes:
+  - "https"
+  - "http"
+tags:
+  - name: Models
+    description: Revit Models saved on Autodesk's BIM360 Docs.
+paths:
+  /transfer:
+    post:
+      tags:
+        - Models
+      summary: Tranfers models from Project Files WIP directory to Plans Shared directory
+      description: ''
+      operationId: api.transfer
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: data
+          description: The 3-legged access token and the model's URL.
+          required: true
+          schema:
+            $ref: '#/definitions/transferData'
+      responses:
+        '200':
+          description: Successful Operation
+        '400':
+          description: Bad Request
+definitions:
+  transferData:
+    type: object
+    properties:
+      model_url:
+        type: string
+      access_token:
+        type: string

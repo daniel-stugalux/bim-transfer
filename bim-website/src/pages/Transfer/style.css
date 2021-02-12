@@ -1,0 +1,10 @@
+.centerDiv {
+    position: absolute;
+    min-width: 250px;
+    min-height: 40px;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+    -ms-transform: translateX(-50%);
+    transform: translateX(-50%);
+}
