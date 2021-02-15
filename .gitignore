@@ -113,6 +113,7 @@ venv.bak/
 
 api/config/*
 bim-website/config.json
+bim-website/src/config.json
 
 api/nohup.out
 bim-website/.env.staging

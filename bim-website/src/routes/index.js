@@ -13,7 +13,7 @@ export default function Routes() {
             <Route path="/" component={Login} />
             
             {/* redirect user to SignIn page if route does not exist and user is not authenticated */}
-            <Route component={OAuthCallback} />
+            <Route component={Login} />
         </Switch>
     );
 }
