@@ -80,6 +80,7 @@ def transfer(data):
             create_relationship(access_token_2_legged, project_id, ids['version'], versions_to_link)
     else:
         # upload unique file
+        os.rename(filepath + filename, filepath + display_name)
         upload_or_update_to_mirror_folder(access_token_2_legged, project_id, path_to_file, display_name, filepath,
                                           display_name)
 

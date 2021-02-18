@@ -276,7 +276,12 @@ def upload_file(token, project_id, target_folder_id, filepath, filename):
         pprint(response.json())
         return None
     else:
-        return response.json()['data']['id'], response.json()['included']['id']
+        item_id = response.json()['data']['id']
+        try:
+            version_id = response.json()['included']['id']
+        except TypeError:
+            version_id = response.json()['included'][0]['id']
+        return item_id, version_id
 
 
 def update_file_version(token, project_id, target_folder_id, filepath, filename, item_id):
