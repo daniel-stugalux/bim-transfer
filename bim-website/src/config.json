@@ -1,9 +1,9 @@
 {
     "OAUTH_URL": "https://developer.api.autodesk.com/authentication/v1/authorize",
-    "CALLBACK_URL": "http://bim.stugalux.lu:580/api/forge/callback/oauth",
+    "CALLBACK_URL": "http://172.17.0.2:3000/api/forge/callback/oauth",
     "RESPONSE_TYPE": "token",
-    "CLIENT_ID": "ACz7ac0hpX1GBXx6AACpIQvBvYsgWFrY",
-    "CLIENT_SECRET": "v6l1ZXjskdSAGxjR",
+    "CLIENT_ID": "G8JAPq3P4GHhvmkLndrnOuTnt0Sr11bG",
+    "CLIENT_SECRET": "jmW60C8ES4mjixyi",
     "SCOPES": "data:read data:create data:write account:read data:search",
-    "TRANSFER_URI": "http://bim.stugalux.lu:8081/transfer"
+    "TRANSFER_URI": "http://172.17.0.1:8081/transfer"
 }

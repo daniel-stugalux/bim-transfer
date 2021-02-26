@@ -19,8 +19,10 @@ def get_2_legged_authentification_token(forge_client_id, forge_client_secret):
     }
 
     response = requests.request("POST", url, headers=headers, data=payload)
-
-    return response.json()["access_token"], response.cookies.get_dict()
+    if response.status_code == 200:
+        return 200, response.json()["access_token"]
+    else:
+        return 504, "2-legged authentication failed."
 
 
 def get_folder_info(token, project_id, folder_id):
@@ -35,9 +37,9 @@ def get_folder_info(token, project_id, folder_id):
     if response.status_code != 200:
         pprint("\nError in get item info\n")
         pprint(response.json())
-        return None
+        return 505, "GET /folders/:folder_id request failed."
     else:
-        return {
+        return 200, {
             'id': response.json()['data']['id'],
             'name': response.json()['data']['attributes']['displayName'],
             'parent_id': response.json()['data']['relationships'].get('parent', {}).get('data', {}).get('id', None)
@@ -53,11 +55,15 @@ def get_item_storage_location(token, project_id, item_id):
     }
 
     response = requests.request("GET", url, headers=headers)
-    return response.json()['included'][0]['relationships']['storage']['meta']['link']['href']
+    if response.status_code != 200:
+        return 506, "GET /items/:item_id request failed."
+    return 200, response.json()['included'][0]['relationships']['storage']['meta']['link']['href']
 
 
 def download_file(token, project_id, item_id, path_to_storage_folder):
-    url = get_item_storage_location(token, project_id, item_id)
+    response, url = get_item_storage_location(token, project_id, item_id)
+    if response != 200:
+        return response, url
 
     headers = {
         'Authorization': 'Bearer ' + token
@@ -65,10 +71,11 @@ def download_file(token, project_id, item_id, path_to_storage_folder):
 
     response = requests.request("GET", url, headers=headers)
     if response.status_code == 200:
+        # noinspection PyTypeChecker
         open(path_to_storage_folder, 'wb').write(response.content)
-        print("Download done\n")
+        return 200, "Success."
     else:
-        print("Download failed\n")
+        return 507, "Item download failed."
 
 
 def get_item_display_name(token, project_id, item_id):
@@ -80,7 +87,9 @@ def get_item_display_name(token, project_id, item_id):
     }
 
     response = requests.request("GET", url, headers=headers)
-    return response.json()['data'][0]['attributes']['displayName']
+    if response.status_code != 200:
+        return 508, "GET /items/:item_id/versions request failed."
+    return 200, response.json()['data'][0]['attributes']['displayName']
 
 
 def search_parent_folder_id_by_name(token, project_id, root_folder_id, item_name):
@@ -95,7 +104,9 @@ def search_parent_folder_id_by_name(token, project_id, root_folder_id, item_name
     }
 
     response = requests.request("GET", url, headers=headers, params=parameters)
-    return response.json()['included'][0]['relationships']['parent']['data']['id']
+    if response.status_code != 200:
+        return 509, "GET /folders/:folder_id/search request failed."
+    return 200, response.json()['included'][0]['relationships']['parent']['data']['id']
 
 
 def get_subfolder_id(token, project_id, folder_id, subfolder_name):
@@ -110,12 +121,13 @@ def get_subfolder_id(token, project_id, folder_id, subfolder_name):
     if response.status_code == 200:
         for i in response.json()['data']:
             if i['attributes']['displayName'] == subfolder_name:
-                return i['id']
-    return None
+                return 200, i['id']
+    else:
+        return 510, "GET /folders/:folder_id/contents request failed."
+    return 404, "Subfolder " + subfolder_name + " not found."
 
 
 def create_folder_in_bim_360(token, project_id, parent_folder_id, name):
-    print("\n" + parent_folder_id + "\n")
     url = "https://developer.api.autodesk.com/data/v1/projects/b." + project_id + "/folders"
     payload = {
         "jsonapi": {
@@ -145,9 +157,10 @@ def create_folder_in_bim_360(token, project_id, parent_folder_id, name):
         'Authorization': 'Bearer ' + token
     }
 
-    response = requests.request(
-        "POST", url, headers=headers, data=json.dumps(payload))
-    return response.json()
+    response = requests.request("POST", url, headers=headers, data=json.dumps(payload))
+    if response.status_code != 201:
+        return 511, "POST /folders request failed."
+    return 200, response.json()
 
 
 def is_file_already_in_folder(token, project_id, folder_id, filename):
@@ -162,8 +175,10 @@ def is_file_already_in_folder(token, project_id, folder_id, filename):
     if response.status_code == 200:
         for i in response.json()['data']:
             if i['attributes']['displayName'] == filename:
-                return i['id']
-    return None
+                return 200, i['id']
+    else:
+        return 510, "GET /folders/:folder_id/contents request failed."
+    return 404, "File " + filename + " not found."
 
 
 def prepare_file_storage(token, project_id, traget_folder_id, filepath, filename):
@@ -194,25 +209,27 @@ def prepare_file_storage(token, project_id, traget_folder_id, filepath, filename
     response = requests.post(url, headers=headers, data=json.dumps(data))
     if response.status_code == 201:
         object_id_raw = response.json()['data']['id']
-        object_id = extract_object_id(object_id_raw)
+        try:
+            object_id = extract_object_id(object_id_raw)
+        except (IndexError, AttributeError):
+            return 501, "Error preparing file storage."
     else:
-        pprint(response.json())
-        print("\nResponse status code : " + str(response.status_code) + '\n')
-        return None
+        return 502, "Error preparing file storage."
 
     url = 'https://developer.api.autodesk.com/oss/v2/buckets/wip.dm.prod/objects/' + object_id
     data = open(filepath, 'rb').read()
 
     response = requests.put(url, headers=headers, data=data)
     if response.status_code != 200:
-        pprint(response.json())
-        return None
+        return 503, "Error creating OSS bucket."
     object_id_raw = response.json()['objectId']
-    return object_id, object_id_raw
+    return 200, object_id_raw
 
 
 def upload_file(token, project_id, target_folder_id, filepath, filename):
-    _, object_id_raw = prepare_file_storage(token, project_id, target_folder_id, filepath, filename)
+    response, object_id_raw = prepare_file_storage(token, project_id, target_folder_id, filepath, filename)
+    if response != 200:
+        return response, object_id_raw
 
     url = 'https://developer.api.autodesk.com/data/v1/projects/b.' + project_id + '/items'
     headers = {
@@ -273,19 +290,20 @@ def upload_file(token, project_id, target_folder_id, filepath, filename):
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
     if response.status_code != 201:
-        pprint(response.json())
-        return None
+        return 512, "POST projects/:project_id/items request failed."
     else:
         item_id = response.json()['data']['id']
         try:
             version_id = response.json()['included']['id']
         except TypeError:
             version_id = response.json()['included'][0]['id']
-        return item_id, version_id
+        return 200, (item_id, version_id)
 
 
 def update_file_version(token, project_id, target_folder_id, filepath, filename, item_id):
-    _, object_id_raw = prepare_file_storage(token, project_id, target_folder_id, filepath, filename)
+    response, object_id_raw = prepare_file_storage(token, project_id, target_folder_id, filepath, filename)
+    if response != 200:
+        return response, object_id_raw
 
     url = 'https://developer.api.autodesk.com/data/v1/projects/b.' + project_id + '/versions'
 
@@ -324,7 +342,9 @@ def update_file_version(token, project_id, target_folder_id, filepath, filename,
     }
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
-    return item_id, response.json()['data']['id']
+    if response.status_code != 201:
+        return 513, "POST projects/:project_id/versions request failed."
+    return 200, (item_id, response.json()['data']['id'])
 
 
 def create_relationship(token, project_id, version_id, linked_versions):
@@ -369,7 +389,5 @@ def create_relationship(token, project_id, version_id, linked_versions):
 
     response = requests.post(url, headers=headers, params=parameters, data=json.dumps(data))
     if response.status_code != 201:
-        pprint(response.json())
-        return None
-    else:
-        return 201
+        return 513, "POST projects/:project_id/versions request failed."
+    return 200, "Success."
