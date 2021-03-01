@@ -87,7 +87,10 @@ def transfer(data):
                 if response != 200:
                     return parent_folder_id, response
                 # Get the path to the file
-                path_to_file = get_path_to_item(access_token_2_legged, project_id, parent_folder_id, known_paths)
+                response, path_to_file = get_path_to_item(access_token_2_legged, project_id, parent_folder_id,
+                                                          known_paths)
+                if response != 200:
+                    return path_to_file, response
                 known_paths.append(path_to_file)
                 files_to_upload[i] = len(known_paths) - 1
         # Upload files to mirror directories
