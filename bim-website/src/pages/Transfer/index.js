@@ -5,20 +5,15 @@ import NavBar from '../../components/NavBar.js';
 import Alert from '../../components/Alert.js';
 import Typography from '@material-ui/core/Typography';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { Redirect } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from'js-cookie';
 import config from '../../config.json';
+import GifDialog from '../../components/GifDialog.js';
 
-const thema = createMuiTheme({
-    palette: {
-        secondary: {
-            main: '#102538'
-        }
-      },
-});
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -41,16 +36,14 @@ const useStyles = makeStyles((theme) => ({
 const CustomButtom = (props) => {
     const boom = props.loading ? <CircularProgress color="secondary" size={32}/> : "Transfer"
     return (
-        <MuiThemeProvider theme={thema}>
-            <Button
-                variant="contained"
-                color="secondary"
-                style={{ marginLeft: 20, marginTop: 8, height: 40, width: 100 }}
-                onClick={props.handler}
-                disabled={props.disabled}>
-                {boom}
-            </Button>
-        </MuiThemeProvider>
+        <Button
+            variant="contained"
+            color="secondary"
+            style={{ marginLeft: 20, marginTop: 8, height: 40, width: 100 }}
+            onClick={props.handler}
+            disabled={props.disabled}>
+            {boom}
+        </Button>
     )
 }
 
@@ -60,6 +53,7 @@ const Transfer = () => {
     const [loading, setLoading] = useState(false);
     const [buttonDisabled, setButtomDisabled] = useState(false);
     const [open, setOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
     const [alertSeverity, setAlertSeverity] = useState('success');
 
@@ -69,6 +63,10 @@ const Transfer = () => {
         }
     }
 
+    const handleDialogClose = () => {
+        setDialogOpen(false);
+    }
+
     if (Cookies.get('access_token') === undefined){
         return <Redirect to="/" />;
     }
@@ -76,6 +74,7 @@ const Transfer = () => {
     const handleTranfer = () => {
         setLoading(true);
         setButtomDisabled(true);
+        setOpen(false);
         const data = {
             'access_token': Cookies.get('access_token'),
             'model_url': url
@@ -85,11 +84,10 @@ const Transfer = () => {
             .then(function (response) {
                 setLoading(false);
                 setButtomDisabled(false);
-                setAlertMessage("Success");
-                setAlertSeverity('success');
+                setAlertMessage(response.data);
+                setAlertSeverity(response.status === 200 ? 'success' : 'warning');
                 setOpen(true);
                 setUrl('');
-                // TODO : When success, show what files where uploaded and where
             }).catch(function (error) {
                 setLoading(false);
                 setButtomDisabled(false);   
@@ -104,12 +102,17 @@ const Transfer = () => {
         <div>
             <NavBar />
             <div className={classes.margin}>
-                <Typography 
-                    variant="h3" 
-                    color="textPrimary" 
-                    style={{ marginLeft: 60, marginBottom: 20, maxHeight: 50 }}>
-                    Insert the model's URL
-                </Typography>
+                <div style={{display: 'flex'}}>
+                    <Typography 
+                        variant="h3" 
+                        color="textPrimary" 
+                        style={{ marginLeft: 60, marginBottom: 20, height: 50, width: 500 }}>
+                        Insert the model's URL
+                    </Typography>
+                    <IconButton aria-label="info" color="secondary" style={{marginBottom: 25}}  onClick={() => setDialogOpen(true)}>
+                        <InfoOutlinedIcon />
+                    </IconButton>
+                </div>
                 <div>
                     <TextField
                         label="Model URL"
@@ -127,6 +130,7 @@ const Transfer = () => {
                 handleClose={handleAlertClose} 
                 severity={alertSeverity} 
                 message={alertMessage}/>
+            <GifDialog onClose={handleDialogClose} open={dialogOpen}/>
         </div>
     );
 }

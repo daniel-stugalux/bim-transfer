@@ -10,7 +10,8 @@ from flask_cors import CORS
 
 from lib.autodeskConnector import create_relationship, search_parent_folder_id_by_name, get_item_display_name, \
     get_2_legged_authentification_token, download_file
-from lib.utils import upload_or_update_to_mirror_folder, get_path_to_item, extract_variables_from_link
+from lib.utils import upload_or_update_to_mirror_folder, get_path_to_item, extract_variables_from_link, \
+    beautify_folders_string
 
 path = os.path.dirname(os.path.abspath(__file__))
 config = configparser.ConfigParser()
@@ -76,7 +77,10 @@ def transfer(data):
     # Get WIP folder id
     wip_folder_id = path_to_file[4]['id']
 
-    if is_zipfile(filepath + filename):
+    success_message = []
+    is_model_linked = is_zipfile(filepath + filename)
+
+    if is_model_linked:
         with ZipFile(filepath + filename) as my_file:
             files = my_file.namelist()
             my_file.extractall(filepath)
@@ -106,6 +110,11 @@ def transfer(data):
                 version_id = response_data[1]
             uploaded_version_ids_set = uploaded_version_ids_set.union({version_id})
             uploaded_ids[name] = {'version': version_id, 'item': item_id}
+            # complete success message
+            response, folders_string = beautify_folders_string(known_paths[index])
+            if response != 200:
+                return folders_string, response
+            success_message.append(name + ' was uploaded to ' + folders_string + '.')
 
         # Create links between all the files
         for name, ids in uploaded_ids.items():
@@ -118,9 +127,15 @@ def transfer(data):
         os.rename(filepath + filename, filepath + display_name)
         response, response_data = upload_or_update_to_mirror_folder(access_token_2_legged, project_id, path_to_file,
                                                                     display_name, filepath, display_name)
+        # complete success message
+        response, folders_string = beautify_folders_string(path_to_file)
+        if response != 200:
+            return folders_string, response
+        success_message = ['WARNING : File was uploaded with no links.', display_name + ' was uploaded to '
+                           + folders_string + '.']
         if response != 200:
             return response_data, response
-    return "Successful operation.", 200
+    return success_message, 200 if is_model_linked else 201
 
 
 app = connexion.App(__name__, specification_dir='./specification/')

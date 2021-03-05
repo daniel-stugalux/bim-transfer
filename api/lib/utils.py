@@ -12,6 +12,16 @@ def is_folder_known(folder_id, known_paths):
     return False, None
 
 
+def beautify_folders_string(folders_list):
+    result = ''
+    try:
+        for i in range(5, len(folders_list)):
+            result += folders_list[i]['name'] + ' > '
+    except IndexError:
+        return 515, 'Index error when printing folder listing.'
+    return 200, result[:-3]
+
+
 def get_path_to_item(token, project_id, folder_id, known_paths=None):
     path = []
     if known_paths is None:
