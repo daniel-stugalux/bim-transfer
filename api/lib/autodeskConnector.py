@@ -106,6 +106,9 @@ def search_parent_folder_id_by_name(token, project_id, root_folder_id, item_name
     response = requests.request("GET", url, headers=headers, params=parameters)
     if response.status_code != 200:
         return 509, "GET /folders/:folder_id/search request failed."
+    elif not response.json()['data']:
+        return 514, item_name + " was not found. This file must be uploaded on BIM360 in the project files " \
+                                "subdirectories."
     return 200, response.json()['included'][0]['relationships']['parent']['data']['id']
 
 

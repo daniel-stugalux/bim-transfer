@@ -17,9 +17,8 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 
-
 const Alert = (props) => {
-    const classes = useStyles();
+    const classes = useStyles(); 
 
     const boom = props.severity === 'error' ?  
                                     <img src={FailImage} alt="Fail" className={classes.image}/> :
